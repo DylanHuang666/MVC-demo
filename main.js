@@ -1,29 +1,48 @@
 fakeData()
 
-//modul模块
-let model={
-    data:{               //初始data
+//----------------构造函数封装Model类
+function Model(options){
+    this.data=options.data
+    this.resouce=options.resouce
+}
+Model.prototype.fetch=function(id){           //Model类共有方法
+    return axios.get(`/${this.resouce}s/${id}`).then((response)=>{
+        this.data=response.data       //更改this.data的值
+        return response
+    })
+}
+Model.prototype.update=function(id,data){        //Model类共有方法
+    return axios.put(`/${this.resouce}s/${id}`,data).then((response)=>{
+        this.data=response.data   //更改this.data的值
+        return response
+    })
+}
+
+//----------------构造函数封装View类
+function View({el,template}){
+    this.el=el
+    this.template=template
+}
+View.prototype.render=function(data){          //View类共有方法
+    let html=this.template
+    for(let key in data){
+        html=html.replace(`__${key}__`,data[key])     
+    }
+    $(this.el).html(html)
+}
+
+
+//-------------------声明model,view对象
+let model=new Model({
+    data:{               //初始的data
         name:'',
         number:0,
         id:''
     },
-    fetch(id){                                        //获取数据
-        return axios.get(`/books/${id}`).then((response)=>{
-            this.data=response.data
-            return response
-        })     
-    },
-    update(id,data){         //更新数据
-        return axios.put(`/books/${id}`,data).then((response)=>{
-            this.data=response.data
-            return response
-        })
-    }
+    resouce:'book'
+})
 
-}
-
-//view模块
-let view={          //操作可见部分
+let view=new View({
     el:'#app',
     template:`
     <div>
@@ -35,12 +54,8 @@ let view={          //操作可见部分
         <button id="minusOne">减一</button>
         <button id="reset">归零</button>
     </div>
-    `,
-    render(data){
-        let html=this.template.replace('__name__',data.name).replace('__number__',data.number) //对页面内容进行替换
-        $(this.el).html(html)
-    }
-}
+`})
+
 
 //controller模块
 var controller={           //其他逻辑执行代码
@@ -96,7 +111,7 @@ controller.init({view:view,model:model})   //执行
 
 //造一个假的数据后台
 function fakeData(){
-    let book = {
+    let book = {            //给个初始data
         name:'西游记',
         number:2,
         id:1
@@ -104,11 +119,11 @@ function fakeData(){
     axios.interceptors.response.use(function(response){
         let {config:{method,url,data}}=response
         if(url==='/books/1' && method==='get'){
-            response.data=book
+            response.data=book                    //response.data值更新
         }else if(url==='/books/1' && method==='put'){
             data=JSON.parse(data)
             Object.assign(book,data)
-            response.data=book
+            response.data=book               //response.data值更新
         }
         return response
     })
